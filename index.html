@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stock Verdict</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#14181f;--mut:#667085;--bd:#e3e6eb;--g:#12a150;--b:#2563eb;--y:#d99a06;--r:#dc2626}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1116;--card:#171b22;--tx:#eef1f5;--mut:#98a2b3;--bd:#262c36}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:0 14px 40px}
+.wrap{max-width:760px;margin:0 auto}
+h1{font-size:19px;margin:18px 0 10px}
+.search{display:flex;gap:8px}
+input,button{font:inherit;border-radius:10px;border:1px solid var(--bd);padding:11px 12px;background:var(--card);color:var(--tx)}
+input{flex:1;min-width:0;text-transform:uppercase}
+button{background:var(--b);color:#fff;border:0;font-weight:600;cursor:pointer}
+button.sec{background:var(--card);color:var(--tx);border:1px solid var(--bd)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-top:12px}
+.mut{color:var(--mut);font-size:13px}
+.verdict{display:flex;gap:14px;align-items:center}
+.tick{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;flex:none}
+.BUY .tick{background:var(--g)}.HOLD .tick{background:var(--b)}.WAIT .tick{background:var(--y)}.AVOID .tick{background:var(--r)}
+.vt{font-size:24px;font-weight:800;letter-spacing:.3px}
+.BUY .vt{color:var(--g)}.HOLD .vt{color:var(--b)}.WAIT .vt{color:var(--y)}.AVOID .vt{color:var(--r)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{border:1px solid var(--bd);border-radius:999px;padding:5px 11px;font-size:13px}
+.chip b{font-weight:700}.up{color:var(--g)}.dn{color:var(--r)}.am{color:var(--y)}
+h2{font-size:15px;margin:0 0 8px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:6px 4px;text-align:right;border-bottom:1px solid var(--bd)}th:first-child,td:first-child{text-align:left}
+th{color:var(--mut);font-weight:600;font-size:12px}
+tr.px td{background:rgba(37,99,235,.12);font-weight:700}
+tr.zone td:first-child::after{content:" ●";color:var(--y)}
+svg{width:100%;height:auto;display:block}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:600px){.two{grid-template-columns:1fr}}
+details summary{cursor:pointer;font-weight:600}
+.err{color:var(--r)}
+.man{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.man input{text-transform:none}
+.foot{font-size:12px;color:var(--mut);margin-top:14px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tabs button{background:var(--card);color:var(--tx);border:1px solid var(--bd);padding:8px 12px;font-weight:600}
+.tabs button.on{background:var(--b);color:#fff;border-color:var(--b)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.filebtn{display:inline-block;border:1px solid var(--bd);border-radius:10px;padding:11px 12px;background:var(--card);cursor:pointer;font-weight:600}
+textarea{width:100%;min-height:70px;border-radius:10px;border:1px solid var(--bd);padding:10px;background:var(--card);color:var(--tx);font:inherit;margin-top:8px}
+.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-weight:700;font-size:12px;color:#fff}
+.pill.BUY{background:var(--g)}.pill.HOLD{background:var(--b)}.pill.WAIT{background:var(--y)}.pill.AVOID{background:var(--r)}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.fchips button{background:var(--card);color:var(--tx);border:1px solid var(--bd);padding:5px 11px;border-radius:999px;font-size:13px}
+.fchips button.on{background:var(--tx);color:var(--bg);border-color:var(--tx)}
+.scroll{overflow-x:auto}
+#scanOut table td,#scanOut table th{white-space:nowrap}#scanOut td:nth-child(2){text-align:center}
+#scanOut tr[data-s]{cursor:pointer}#scanOut tr[data-s]:hover td{background:rgba(37,99,235,.08)}
+.sub{font-size:11px;color:var(--mut)}
+</style>
+</head>
+<body><div class="wrap">
+<h1>Stock Verdict · NSE</h1>
+<div class="tabs"><button data-m="single" class="on">Single stock</button><button data-m="n500">Nifty 500</button><button data-m="fno">F&amp;O stocks</button><button data-m="mine">My list</button></div>
+<div id="pSingle">
+<div class="search"><input id="sym" placeholder="NSE symbol, e.g. RELIANCE" autocapitalize="characters" autocomplete="off"><button id="go">Check</button></div>
+<div id="status" class="mut" style="margin-top:8px"></div>
+<div id="out"></div>
+</div>
+<div id="pScan" style="display:none">
+ <div class="card" style="margin-top:0">
+  <div id="listInfo" class="mut"></div>
+  <textarea id="mineTxt" placeholder="Type or paste NSE symbols, separated by commas or new lines. Example: RELIANCE, TCS, M&M, BAJAJ-AUTO" style="display:none;text-transform:uppercase"></textarea>
+  <div class="row"><button id="scanGo">Start scan</button><button class="sec" id="listReload">Reload list</button><label class="filebtn">Upload CSV<input type="file" id="listFile" accept=".csv,.txt" style="display:none"></label></div>
+  <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13px"><input type="checkbox" id="fundAll" style="flex:none;text-transform:none;width:auto"> Check fundamentals for every stock (slower). Otherwise only stocks with a rising next-year pivot and price above it are checked.</label>
+  <div id="scanProg" class="mut" style="margin-top:8px"></div>
+ </div>
+ <div id="scanOut"></div>
+</div>
+<div class="foot">Levels use the developing High / Low / Close of the running month and calendar year, so they can shift until the period closes. Rule-based screen for study, not investment advice.</div>
+</div>
+<script>
+// ==LOGIC-START==
+const PROXIES=[u=>u,u=>'https://corsproxy.io/?url='+encodeURIComponent(u),u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u)];
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const KEYS=['R3','R1','PP','S1','L3'];
+
+function lv(H,L,C){const pp=(H+L+C)/3,r=H-L;return{PP:pp,R1:2*pp-L,S1:2*pp-H,R3:C+r*1.1/4,L3:C-r*1.1/4};}
+
+function mergeMonths(bars){const m=new Map();for(const b of bars){const k=b.y*12+b.m,g=m.get(k);if(!g)m.set(k,{...b});else{g.h=Math.max(g.h,b.h);g.l=Math.min(g.l,b.l);g.c=b.c;}}return[...m.values()].sort((a,b)=>(a.y*12+a.m)-(b.y*12+b.m));}
+function aggYears(bars){const m=new Map();for(const b of bars){let g=m.get(b.y);if(!g){m.set(b.y,{y:b.y,h:b.h,l:b.l,c:b.c});}else{g.h=Math.max(g.h,b.h);g.l=Math.min(g.l,b.l);g.c=b.c;}}return[...m.values()].sort((a,b)=>a.y-b.y);}
+
+function scenarios(Y,price){return[-10,-5,0,5,10].map(p=>{const C=price*(1+p/100),H=Math.max(Y.h,C),L=Math.min(Y.l,C);return{p,C,lv:lv(H,L,C)};});}
+
+function priceCagr3(mb,price){if(mb.length<37)return null;const c0=mb[mb.length-37].c;return c0>0?(Math.pow(price/c0,1/3)-1)*100:null;}
+
+function scoreFund(f,cagr3){
+  const items=[];
+  const add=(name,val,disp,max,fn)=>{if(val==null||isNaN(val)){items.push({name,na:true,disp:'n/a',pts:0,max:0});return;}items.push({name,disp,pts:fn(val),max});};
+  add('Debt to equity',f.de,f.de==null?'':f.de.toFixed(2),2,v=>v<=0.5?2:v<=1?1:0);
+  add('Profit growth, 3Y CAGR',f.patG3,f.patG3==null?'':f.patG3+'%',3,v=>v>=20?3:v>=12?2:v>=5?1:0);
+  add('Sales growth, 3Y CAGR',f.salesG3,f.salesG3==null?'':f.salesG3+'%',2,v=>v>=15?2:v>=8?1:0);
+  const roe=f.roe3!=null?f.roe3:f.roe;
+  add('Return on equity',roe,roe==null?'':roe+'%',3,v=>v>=18?3:v>=12?2:v>=8?1:0);
+  add('Return on capital (ROCE)',f.roce,f.roce==null?'':f.roce+'%',2,v=>v>=18?2:v>=12?1:0);
+  add('P/E',f.pe,f.pe==null?'':f.pe+'',2,v=>v<=0?0:v<=25?2:v<=40?1:0);
+  add('Share price CAGR, 3Y',cagr3,cagr3==null?'':cagr3.toFixed(1)+'%',2,v=>v>=20?2:v>=12?1:0);
+  const pts=items.reduce((a,i)=>a+i.pts,0),max=items.reduce((a,i)=>a+i.max,0);
+  let tier='Unknown',pct=null;
+  if(max>=8){pct=pts/max*100;tier=pct>=70?'Strong':pct>=45?'Average':'Weak';
+    if(tier==='Strong'&&((f.patG3!=null&&f.patG3<0)||(f.de!=null&&f.de>2)))tier='Average';}
+  return{items,pts,max,pct,tier};
+}
+
+function tradePlan(price,mN,yN){
+  const lo=Math.min(mN.L3,mN.PP),hi=Math.max(mN.L3,mN.PP);
+  let status,entry=null;
+  if(price>hi){status='above';entry=hi;}else if(price>=lo){status='in';entry=price;}else status='below';
+  const sl=Math.min(mN.L3,mN.S1)*0.99;
+  let tg=[];
+  if(entry!=null){tg=[mN.R1,mN.R3,yN.R1].filter(v=>v>entry*1.005).sort((a,b)=>a-b).filter((v,i,a)=>i===0||v-a[i-1]>entry*0.005);}
+  const rr=entry!=null&&tg.length&&entry>sl?(tg[0]-entry)/(entry-sl):null;
+  return{lo,hi,status,entry,sl,tg,rr};
+}
+
+function verdict(tier,t){
+  const trendOk=t.biasUp&&t.above;
+  if(tier==='Weak')return{k:'AVOID',icon:'✕',text:'Fundamentals are weak. Skip this stock, whatever the chart looks like.'};
+  if(tier==='Unknown')return{k:'WAIT',icon:'…',text:'Not enough fundamental data. Enter the numbers manually below, then decide.'};
+  if(tier==='Strong'){
+    if(trendOk&&!t.stretched)return{k:'BUY',icon:'✓',text:'Strong business, next-year pivot is rising and price is above it. Fresh buying is fine, ideally on dips toward the monthly L3–PP zone.'};
+    if(trendOk&&t.stretched)return{k:'HOLD',icon:'●',text:'Strong business and trend is up, but price is already stretched above the monthly R3. Hold what you own, do not chase; add on a dip.'};
+    return{k:'WAIT',icon:'…',text:'Strong business, but the trend is not confirmed yet (next-year pivot is falling or price is below it). Wait for price to get above the next-year pivot.'};
+  }
+  if(trendOk)return{k:'HOLD',icon:'●',text:'Business is average but trend is up. Hold if you already own it; do not add big.'};
+  return{k:'WAIT',icon:'…',text:'Business is average and the trend is not confirmed. No hurry; look for stronger stocks or wait for a better setup.'};
+}
+// ==LOGIC-END==
+
+const $=s=>document.querySelector(s);
+const nf=new Intl.NumberFormat('en-IN',{maximumFractionDigits:2});
+const fmt=n=>n==null||isNaN(n)?'–':nf.format(n);
+const pc=n=>n==null||isNaN(n)?'–':(n>0?'+':'')+n.toFixed(1)+'%';
+let S={};
+
+async function fetchVia(url,validate){
+  let err;
+  for(const p of PROXIES){
+    try{
+      const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),15000);
+      const r=await fetch(p(url),{signal:ctl.signal});clearTimeout(to);
+      if(!r.ok)continue;
+      const t=await r.text();let v=null;
+      try{v=validate(t);}catch(e){v=null;}
+      if(v)return v;
+    }catch(e){err=e;}
+  }
+  throw err||new Error('Could not fetch data');
+}
+const yj=u=>fetchVia(u,t=>{const j=JSON.parse(t);return j.chart&&j.chart.result&&j.chart.result[0]||null;});
+
+function parseBars(res){
+  const ts=res.timestamp||[],q=res.indicators.quote[0],off=res.meta.gmtoffset||0,out=[];
+  for(let i=0;i<ts.length;i++){
+    const h=q.high[i],l=q.low[i],c=q.close[i];if(h==null||l==null||c==null)continue;
+    const d=new Date((ts[i]+off)*1000);
+    out.push({y:d.getUTCFullYear(),m:d.getUTCMonth(),h,l,c});
+  }
+  return out;
+}
+
+async function loadPrices(sym){
+  const base='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+'.NS';
+  const [mr,dr]=await Promise.all([yj(base+'?range=10y&interval=1mo'),yj(base+'?range=1y&interval=1d')]);
+  let mb=mergeMonths(parseBars(mr));
+  const db=parseBars(dr);
+  const price=dr.meta.regularMarketPrice||db[db.length-1].c;
+  const last=mb[mb.length-1];
+  for(const d of db){if(d.y===last.y&&d.m===last.m){last.h=Math.max(last.h,d.h);last.l=Math.min(last.l,d.l);}}
+  last.h=Math.max(last.h,price);last.l=Math.min(last.l,price);last.c=price;
+  return{mb,db,price,name:dr.meta.longName||dr.meta.shortName||sym};
+}
+
+function parseScreener(html){
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  const num=s=>{if(s==null)return null;const m=String(s).replace(/,/g,'').match(/-?\d+(\.\d+)?/);return m?parseFloat(m[0]):null;};
+  const top={};
+  doc.querySelectorAll('#top-ratios li').forEach(li=>{const n=li.querySelector('.name'),v=li.querySelector('.number');if(n&&v)top[n.textContent.trim().toLowerCase()]=num(v.textContent);});
+  const rng=title=>{for(const t of doc.querySelectorAll('table.ranges-table')){const h=t.querySelector('th');if(h&&h.textContent.trim().toLowerCase().startsWith(title)){const o={};t.querySelectorAll('tr').forEach(tr=>{const td=tr.querySelectorAll('td');if(td.length===2)o[td[0].textContent.trim().replace(':','').toLowerCase()]=num(td[1].textContent);});return o;}}return{};};
+  const rowLast=(sec,label)=>{const s=doc.querySelector('#'+sec);if(!s)return null;for(const tr of s.querySelectorAll('table tr')){const td=tr.querySelectorAll('td');if(td.length&&td[0].textContent.trim().toLowerCase().startsWith(label)){for(let i=td.length-1;i>0;i--){const t=td[i].textContent.trim();if(t!==''){const v=num(t);if(v!=null)return v;}}}}return null;};
+  const sg=rng('compounded sales growth'),pg=rng('compounded profit growth'),re=rng('return on equity');
+  const eq=rowLast('balance-sheet','equity capital'),res=rowLast('balance-sheet','reserves'),bor=rowLast('balance-sheet','borrowings'),dep=rowLast('balance-sheet','deposits');
+  const fin=dep!=null;
+  let de=null;if(!fin&&eq!=null&&res!=null&&bor!=null&&(eq+res)>0)de=Math.round(bor/(eq+res)*100)/100;
+  return{pe:top['stock p/e']!=null?top['stock p/e']:null,roe:top['roe']!=null?top['roe']:null,roce:top['roce']!=null?top['roce']:null,
+    roe3:re['3 years']!=null?re['3 years']:null,salesG3:sg['3 years']!=null?sg['3 years']:null,patG3:pg['3 years']!=null?pg['3 years']:null,de,financial:fin};
+}
+async function loadFund(sym){
+  for(const path of['consolidated/','']){
+    try{
+      const url='https://www.screener.in/company/'+encodeURIComponent(sym)+'/'+path;
+      const html=await fetchVia(url,t=>t.includes('top-ratios')?t:null);
+      const f=parseScreener(html);
+      if(f.pe!=null||f.roe!=null||f.patG3!=null)return f;
+    }catch(e){}
+  }
+  return null;
+}
+
+function bandText(price,L){
+  const arr=KEYS.map(k=>({k,v:L[k]})).sort((a,b)=>b.v-a.v);
+  let above=null,below=null;
+  for(const a of arr){if(a.v>=price)above=a;else{below=a;break;}}
+  if(!above)return'Above all levels (above R3)';
+  if(!below)return'Below all levels (below '+above.k+')';
+  return'Between '+below.k+' and '+above.k;
+}
+
+function levelTable(title,L,price,cur,nl,cl){
+  const names={R3:'Cam R3',R1:'Pivot R1',PP:'Pivot PP',S1:'Pivot S1',L3:'Cam L3'};
+  const rows=[];
+  for(const k of['R1','R3','PP','L3','S1']){
+    rows.push({n:names[k],tag:'Next · '+nl,v:L[k],nx:true});
+    if(cur)rows.push({n:names[k],tag:'Current · '+cl,v:cur[k],nx:false});
+  }
+  rows.sort((a,b)=>b.v-a.v);
+  let idx=rows.findIndex(r=>r.v<price);if(idx<0)idx=rows.length;
+  const pr=`<tr class="px"><td colspan="2">▶ PRICE NOW</td><td>${fmt(price)}</td><td></td></tr>`;
+  const out=[];
+  rows.forEach((r,i)=>{
+    if(i===idx)out.push(pr);
+    out.push(`<tr${r.nx?'':' style="opacity:.65"'}><td>${r.nx?'<b>'+r.n+'</b>':r.n}</td><td class="mut">${r.tag}</td><td>${r.nx?'<b>'+fmt(r.v)+'</b>':fmt(r.v)}</td><td class="${r.v>=price?'up':'dn'}">${pc((r.v/price-1)*100)}</td></tr>`);
+  });
+  if(idx>=rows.length)out.push(pr);
+  const above=rows.filter(r=>r.v>=price).sort((a,b)=>a.v-b.v)[0],below=rows.filter(r=>r.v<price).sort((a,b)=>b.v-a.v)[0];
+  const near=`Nearest above: <b>${above?above.n+' '+fmt(above.v):'none'}</b> · Nearest below: <b>${below?below.n+' '+fmt(below.v):'none'}</b>`;
+  const lo=Math.min(L.L3,L.S1),hi=Math.max(L.L3,L.S1),inZone=price>=lo&&price<=hi;
+  const bias=cur?(L.PP>cur.PP?`<span class="up">Pivot rising ↑ (bullish)</span>`:`<span class="dn">Pivot falling ↓ (bearish)</span>`):'';
+  return`<div class="card" style="margin:0"><h2>${title}</h2><div class="mut" style="margin-bottom:6px">${bandText(price,L)} · ${bias}</div>
+  <table><tr><th>Level</th><th style="text-align:left">Period</th><th>Value ₹</th><th>From price</th></tr>${out.join('')}</table>
+  <div class="mut" style="margin-top:6px">${near}<br>L3–S1 zone (next): ${fmt(lo)} – ${fmt(hi)} · ${inZone?'<b class="am">price is inside</b>':'price is outside'}</div></div>`;
+}
+
+function drawChart(db,M,Y,price){
+  const closes=db.slice(-250).map(d=>d.c),n=closes.length;
+  const cmin=Math.min(...closes,price),cmax=Math.max(...closes,price);
+  const lo=cmin*0.9,hi=cmax*1.1;
+  const W=720,H=340,ml=8,mr=118,mt=10,mb=14,pw=W-ml-mr,ph=H-mt-mb;
+  const X=i=>ml+i/(n-1||1)*pw,Yp=v=>mt+(1-(v-lo)/(hi-lo))*ph;
+  const col={R3:'#12a150',R1:'#6fcf97',PP:'#2563eb',S1:'#e08a00',L3:'#dc2626'};
+  const lines=[];const off=[];
+  for(const [pre,L,dash] of [['M',M,''],['Y',Y,'6 4']])for(const k of KEYS){
+    const v=L[k];if(v>=lo&&v<=hi)lines.push({t:pre+' '+k+' '+fmt(v),v,c:col[k],dash});else off.push(pre+' '+k+' '+fmt(v));}
+  lines.sort((a,b)=>b.v-a.v);
+  let lastY=-99;
+  for(const l of lines){l.y=Yp(l.v);l.ly=Math.max(l.y,lastY+12);lastY=l.ly;}
+  const path=closes.map((c,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Yp(c).toFixed(1)).join('');
+  const g=lines.map(l=>`<line x1="${ml}" x2="${ml+pw}" y1="${l.y.toFixed(1)}" y2="${l.y.toFixed(1)}" stroke="${l.c}" stroke-width="1.4" ${l.dash?`stroke-dasharray="${l.dash}"`:''}/><text x="${ml+pw+6}" y="${(l.ly+4).toFixed(1)}" font-size="11" fill="${l.c}">${l.t}</text>`).join('');
+  const svg=`<svg viewBox="0 0 ${W} ${H}"><path d="${path}" fill="none" stroke="currentColor" stroke-width="1.8" opacity=".85"/>${g}<circle cx="${X(n-1)}" cy="${Yp(price)}" r="4" fill="#2563eb"/><text x="${ml+pw+6}" y="${Yp(price)-8}" font-size="11" font-weight="700" fill="#2563eb">Price ${fmt(price)}</text></svg>`;
+  return svg+`<div class="mut">M = next month levels (solid) · Y = next year levels (dashed) · last 1 year closes${off.length?'<br>Off chart: '+off.join(', '):''}</div>`;
+}
+
+function render(){
+  const{sym,name,price,mb,db,fund}=S;
+  const yrs=aggYears(mb),curY=yrs[yrs.length-1],prevY=yrs[yrs.length-2];
+  const curM=mb[mb.length-1],prevM=mb[mb.length-2];
+  const mN=lv(curM.h,curM.l,curM.c),mC=prevM?lv(prevM.h,prevM.l,prevM.c):null;
+  const yN=lv(curY.h,curY.l,curY.c),yC=prevY?lv(prevY.h,prevY.l,prevY.c):null;
+  const nextYear=curY.y+1,nextMonth=MONTHS[(curM.m+1)%12];
+  const cagr=priceCagr3(mb,price);
+  const sc=fund?scoreFund(fund,cagr):{items:[],tier:'Unknown',pct:null};
+  const biasUp=yC?yN.PP>yC.PP:false,above=price>=yN.PP,stretched=price>=mN.R3;
+  const v=verdict(sc.tier,{biasUp,above,stretched});
+  const tcls=sc.tier==='Strong'?'up':sc.tier==='Weak'?'dn':'am';
+  const zl=Math.min(mN.L3,mN.PP),zh=Math.max(mN.L3,mN.PP);
+  const lastC=db[db.length-1].c,prevC=Math.abs(lastC-price)<1e-6&&db.length>1?db[db.length-2].c:lastC;
+  const chg=(price/prevC-1)*100;
+  const tp=tradePlan(price,mN,yN),pctE=x=>tp.entry?pc((x/tp.entry-1)*100):'';
+  let act;
+  if(v.k==='AVOID')act='No trade. Fundamentals are weak.';
+  else if(v.k==='WAIT')act='No entry yet. The plan below becomes valid only after the verdict turns BUY.';
+  else if(v.k==='HOLD')act=`If you own it: hold. Exit if it closes below stop-loss ₹${fmt(tp.sl)} (or below ${nextYear} PP ₹${fmt(yN.PP)} for a longer view). Add only on a dip into ₹${fmt(tp.lo)} – ₹${fmt(tp.hi)}.`;
+  else if(tp.status==='in')act=`Price is inside the buy zone. Buy now near ₹${fmt(price)}. Stop-loss ₹${fmt(tp.sl)}. Book part profit at Target 1, rest at Target 2.`;
+  else if(tp.status==='above')act=`Price is above the buy zone. Do not chase. Place a buy order near ₹${fmt(tp.hi)}; skip it if price never dips there.`;
+  else act=`Price has slipped below monthly L3 (₹${fmt(tp.lo)}). Wait for a close back above it before buying.`;
+  const tRows=tp.tg.map((t,i)=>`<tr><td>Target ${i+1}</td><td>${fmt(t)}</td><td class="up">${pctE(t)}</td></tr>`).join('');
+  const plan=`<div class="card"><h2>Trade plan (${nextMonth} monthly levels)</h2><div style="margin-bottom:8px"><b>${act}</b></div>
+   <table><tr><th></th><th>₹</th><th>From entry</th></tr>
+   <tr class="px"><td>Current price</td><td>${fmt(price)}</td><td class="${chg>=0?'up':'dn'}">${pc(chg)} today</td></tr>
+   <tr><td>Buy zone</td><td>${fmt(tp.lo)} – ${fmt(tp.hi)}</td><td></td></tr>
+   <tr><td>Entry</td><td>${tp.entry!=null?fmt(tp.entry):'none now'}</td><td></td></tr>
+   <tr><td>Stop-loss (close below)</td><td>${fmt(tp.sl)}</td><td class="dn">${pctE(tp.sl)}</td></tr>${tRows}
+   <tr><td>Risk : Reward (to Target 1)</td><td>${tp.rr!=null?'1 : '+tp.rr.toFixed(1):'–'}</td><td></td></tr></table>
+   <div class="mut" style="margin-top:6px">Stop-loss = 1% under the lower of monthly L3 / S1. Targets = monthly R1, monthly R3, yearly R1 (those above entry). Levels are reference points, not guarantees.</div></div>`;
+  const sTbl=scenarios(curY,price).map(s=>`<tr><td>${s.p>0?'+':''}${s.p}%${s.p===0?' (today)':''}</td><td>${fmt(s.C)}</td><td>${fmt(s.lv.PP)}</td><td>${fmt(s.lv.S1)}</td><td>${fmt(s.lv.R1)}</td><td>${fmt(s.lv.L3)}</td><td>${fmt(s.lv.R3)}</td><td class="${yC&&s.lv.PP>yC.PP?'up':'dn'}">${yC?(s.lv.PP>yC.PP?'↑':'↓'):'–'}</td></tr>`).join('');
+  const det=sc.items.map(i=>{const c=i.na?'mut':i.pts===i.max?'up':i.pts===0?'dn':'am',ic=i.na?'–':i.pts===i.max?'✓':i.pts===0?'✕':'~';return`<tr><td>${i.name}</td><td>${i.disp}</td><td class="${c}">${ic}</td></tr>`;}).join('');
+  const man=`<div class="man">${[['pe','P/E'],['roe','ROE %'],['roce','ROCE %'],['de','Debt/Equity'],['patG3','Profit growth 3Y %'],['salesG3','Sales growth 3Y %']].map(([k,l])=>`<input id="m_${k}" inputmode="decimal" placeholder="${l}" value="${fund&&fund[k]!=null?fund[k]:''}">`).join('')}</div><button class="sec" id="mgo" style="margin-top:8px">Re-score</button>`;
+  $('#out').innerHTML=`
+  <div class="card ${v.k}"><div class="mut">${name} · ${sym}</div>
+   <div style="font-size:30px;font-weight:800;margin-top:2px">₹${fmt(price)} <span style="font-size:16px" class="${chg>=0?'up':'dn'}">${pc(chg)}</span></div>
+   <div class="mut">Price from Yahoo Finance at ${new Date().toLocaleTimeString()}; can be delayed. Tap Check again to refresh.</div>
+   <div class="verdict" style="margin-top:8px"><div class="tick">${v.icon}</div><div><div class="vt">${v.k}</div><div>${v.text}</div></div></div>
+   <div class="chips">
+    <span class="chip">Fundamentals: <b class="${tcls}">${sc.tier}${sc.pct!=null?' ('+Math.round(sc.pct)+'%)':''}</b></span>
+    <span class="chip">${nextYear} yearly pivot: <b class="${biasUp?'up':'dn'}">${yC?(biasUp?'Rising ↑':'Falling ↓'):'n/a'}</b></span>
+    <span class="chip">Price vs ${nextYear} PP: <b class="${above?'up':'dn'}">${above?'Above':'Below'}</b></span>
+    <span class="chip">Monthly: <b>${bandText(price,mN)}</b></span>
+   </div>
+   <div class="mut" style="margin-top:10px">Buy zone (${nextMonth} monthly L3 → PP): <b>${fmt(zl)} – ${fmt(zh)}</b> · Targets: monthly R3 <b>${fmt(mN.R3)}</b>, yearly R1 <b>${fmt(yN.R1)}</b> · Bias weakens below ${nextYear} PP <b>${fmt(yN.PP)}</b></div>
+  </div>
+  ${plan}
+  <div class="card"><h2>Price with next-period levels</h2>${drawChart(db,mN,yN,price)}</div>
+  <div class="two" style="margin-top:12px">${levelTable('Monthly levels ('+nextMonth+' next, '+MONTHS[curM.m]+' current)',mN,price,mC,nextMonth,MONTHS[curM.m])}${levelTable('Yearly levels ('+nextYear+' next, '+curY.y+' current)',yN,price,yC,String(nextYear),String(curY.y))}</div>
+  <div class="card"><h2>${nextYear} yearly levels if the year closes at…</h2><table><tr><th>Close</th><th>₹</th><th>PP</th><th>S1</th><th>R1</th><th>L3</th><th>R3</th><th>vs ${curY.y} PP</th></tr>${sTbl}</table>
+   <div class="mut" style="margin-top:6px">${curY.y} PP (from ${prevY?prevY.y:'?'}): ${yC?fmt(yC.PP):'n/a'}. High/Low update if the close scenario goes beyond them.</div></div>
+  <div class="card"><details><summary>Why this fundamental rating</summary>
+   ${fund?`<table style="margin-top:8px"><tr><th>Check</th><th>Value</th><th></th></tr>${det}</table>${fund.financial?'<div class="mut" style="margin-top:6px">Bank/finance company: debt to equity is not used.</div>':''}`:'<div class="err" style="margin-top:8px">Could not fetch fundamentals automatically. Enter them below.</div>'}
+   <div class="mut" style="margin-top:10px">Enter / correct numbers manually:</div>${man}</details></div>`;
+  const b=$('#mgo');if(b)b.onclick=()=>{const g=k=>{const x=parseFloat($('#m_'+k).value);return isNaN(x)?null:x;};S.fund={pe:g('pe'),roe:g('roe'),roce:g('roce'),de:g('de'),patG3:g('patG3'),salesG3:g('salesG3'),roe3:null};render();};
+}
+
+async function run(){
+  const sym=$('#sym').value.trim().toUpperCase().replace(/\.NS$/,'');
+  if(!sym)return;
+  try{localStorage.setItem('sv_last',sym);}catch(e){}
+  $('#out').innerHTML='';$('#status').className='mut';$('#status').textContent='Loading price data and fundamentals…';
+  try{
+    const[p,f]=await Promise.all([loadPrices(sym),loadFund(sym)]);
+    if(p.mb.length<3)throw new Error('Not enough price history for this symbol.');
+    S={sym,...p,fund:f};
+    $('#status').textContent='';render();
+  }catch(e){
+    $('#status').className='err';$('#status').textContent='Could not load data for "'+sym+'". Check the NSE symbol (e.g. M&M, TATAMOTORS) or try again in a moment. ('+(e.message||e)+')';
+  }
+}
+// ===== SCAN (Nifty 500 / F&O / My list) =====
+const LISTS={
+  n500:{label:'Nifty 500',url:'https://nsearchives.nseindia.com/content/indices/ind_nifty500list.csv',hint:'ind_nifty500list.csv (niftyindices.com)'},
+  fno:{label:'F&O stocks',url:'https://nsearchives.nseindia.com/content/fo/fo_mktlots.csv',hint:'fo_mktlots.csv (nseindia.com)'},
+  mine:{label:'My list'}
+};
+const EMBED={n500:["360ONE","ABB","ACC","ACMESOLAR","AIAENG","APLAPOLLO","AUBANK","AWL","AADHARHFC","AARTIIND","AAVAS","ABBOTINDIA","ACE","ACUTAAS","ADANIENSOL","ADANIENT","ADANIGREEN","ADANIPORTS","ADANIPOWER","ATGL","ABCAPITAL","ABREL","ABSLAMC","CPPLUS","AEGISLOG","AEGISVOPAK","AETHER","AFCONS","AFFLE","AJANTPHARM","ALKEM","ABDL","ARE&M","AMBER","AMBUJACEM","ANANDRATHI","ANANTRAJ","ANGELONE","ANTHEM","ANURAS","APARINDS","APOLLOHOSP","APOLLOTYRE","APTUS","ASAHIINDIA","ASHOKLEY","ASIANPAINT","ASTERDM","ASTRAL","ATHERENERG","ATUL","AUROPHARMA","AIIL","AVANTIFEED","DMART","AXISBANK","AZAD","BEML","BLS","BSE","BAJAJ-AUTO","BAJFINANCE","BAJAJFINSV","BAJAJHLDNG","BAJAJHFL","BALKRISIND","BALRAMCHIN","BANDHANBNK","BANKBARODA","BANKINDIA","MAHABANK","BATAINDIA","BELRISE","BERGEPAINT","BHARATCOAL","BDL","BEL","BHARATFORG","BHEL","BPCL","BHARTIARTL","BHARTIHEXA","GROWW","BIOCON","BSOFT","BBOX","BLUESTARCO","BOSCHLTD","FIRSTCRY","BRIGADE","BRITANNIA","CCL","CESC","CGPOWER","CIEINDIA","CRISIL","CANFINHOME","CANBK","CANHLIFE","CAPLIPOINT","CGCL","CARBORUNIV","CARTRADE","CASTROLIND","CEATLTD","CEMPRO","CENTRALBK","CDSL","CMPDI","CHAMBLFERT","CHENNPETRO","CHOICEIN","CHOLAHLDNG","CHOLAFIN","CIPLA","CUB","CLEANMAX","CLEAN","COALINDIA","COCHINSHIP","COFORGE","COHANCE","COLPAL","CAMS","CONCORDBIO","CONCOR","COROMANDEL","CRAFTSMAN","CREDITACC","CROMPTON","CUMMINSIND","CUPID","CYIENT","DLF","DOMS","DABUR","DALBHARAT","DATAPATTNS","DEEPAKFERT","DEEPAKNTR","DELHIVERY","DEVYANI","DIVISLAB","DIXON","LALPATHLAB","DRREDDY","EIDPARRY","EIHOTEL","EICHERMOT","ELECON","ELGIEQUIP","EMAMILTD","EMCURE","EMMVEE","ENDURANCE","ENGINERSIN","ESCORTS","ETERNAL","EXIDEIND","NYKAA","FEDERALBNK","FACT","FINCABLES","FSL","FIVESTAR","FORCEMOT","FORTIS","FRACTAL","GAIL","GVT&D","GMRAIRPORT","GABRIEL","GALLANTT","GRSE","GICRE","GILLETTE","GLAND","GLAXO","GLENMARK","MEDANTA","GPIL","GODFRYPHLP","GODREJCP","GODREJIND","GODREJPROP","GRANULES","GRAPHITE","GRASIM","GRAVITA","GESHIP","FLUOROCHEM","GMDCLTD","HBLENGINE","HCLTECH","HDBFS","HDFCAMC","HDFCBANK","HDFCLIFE","HEGAM","HFCL","HAVELLS","HEROMOTOCO","HEXT","HSCL","HINDALCO","HAL","HINDCOPPER","HINDPETRO","HINDUNILVR","HINDZINC","POWERINDIA","HOMEFIRST","HONASA","HONAUT","HUDCO","HYUNDAI","ICICIBANK","ICICILIFE","ICICIGI","ICICIAMC","IDBI","IDFCFIRSTB","IFCI","IIFL","INOXINDIA","IRB","IRCON","ITCHOTELS","ITC","ITI","INDIACEM","INDIAMART","INDIANB","IEX","INDHOTEL","IOC","IOB","IRCTC","IRFC","IREDA","IGL","INDUSTOWER","INDUSINDBK","NAUKRI","INFY","INOXWIND","INTELLECT","INDIGO","IGIL","IKS","IPCALAB","JKCEMENT","JBMA","JKTYRE","JMFINANCIL","JSWCEMENT","JSWENERGY","JSWINFRA","JSWSTEEL","JAINREC","JPPOWER","J&KBANK","JINDALSAW","JSL","JINDALSTEL","JIOFIN","JUBLFOOD","JUBLINGREA","JWL","JYOTICNC","KPRMILL","KEI","KPITTECH","KSB","KAJARIACER","KPIL","KALYANKJIL","KARURVYSYA","KAYNES","KEC","KFINTECH","KIRLOSBROS","KIRLOSENG","KOTAKBANK","KIMS","LTF","LTTS","LGEINDIA","LICHSGFIN","LTFOODS","LTM","LT","LAURUSLABS","LEMONTREE","LENSKART","LICI","LINDEINDIA","LLOYDSME","LODHA","LUPIN","MMTC","MRF","MTARTECH","MGL","M&MFIN","M&M","MANAPPURAM","MRPL","MANKIND","MARICO","MARUTI","MFSL","MAXHEALTH","MAZDOCK","MEESHO","MINDACORP","MSUMI","MOTILALOFS","MPHASIS","MCX","MUTHOOTFIN","NATCOPHARM","NBCC","NCC","NHPC","NLCINDIA","NMDC","NSLNISP","NTPCGREEN","NTPC","NH","NATIONALUM","NAVA","NAVINFLUOR","NESTLEIND","NETWEB","NEULANDLAB","NAM-INDIA","NUVAMA","NUVOCO","OBEROIRLTY","ONGC","OIL","OLAELEC","OLECTRA","PAYTM","ONESOURCE","OFSS","POLICYBZR","PCBL","PGEL","PIIND","PNBHOUSING","PTCIL","PVRINOX","PAGEIND","PARADEEP","PATANJALI","PERSISTENT","PETRONET","PHOENIXLTD","PWL","PIDILITIND","PINELABS","PIRAMALFIN","PPLPHARMA","POLYMED","POLYCAB","POONAWALLA","PFC","POWERGRID","PREMIERENE","PRESTIGE","PFOCUS","PRIVISCL","PNB","RRKABEL","RBLBANK","RECLTD","RHIM","RITES","RADICO","RVNL","RAILTEL","RAINBOW","RKFORGE","REDINGTON","RELIANCE","RPOWER","RUBICON","SBICARD","SBILIFE","SJVN","SHRIPISTON","SRF","SAGILITY","SAILIFE","SAMMAANCAP","MOTHERSON","SANSERA","SARDAEN","SCHAEFFLER","SCHNEIDER","SCI","SHREECEM","SHRIRAMFIN","SHYAMMETL","ENRIN","SIEMENS","SIGNATURE","SOBHA","SOLARINDS","SONACOMS","STARHEALTH","SBIN","SAIL","STLTECH","SUMICHEM","SUNPHARMA","SUNTV","SUNDARMFIN","SUPREMEIND","SUZLON","SWANCORP","SWIGGY","SYNGENE","SYRMA","TBOTEK","TDPOWERSYS","TVSMOTOR","TATACAP","TATACHEM","TATACOMM","TCS","TATACONSUM","TATAELXSI","TATAINVEST","TMCV","TMPV","TATAPOWER","TATASTEEL","TATATECH","TTML","TECHM","TECHNOE","TEGA","TEJASNET","TENNIND","THANGAMAYL","NIACL","RAMCOCEM","THERMAX","TIMKEN","TITAGARH","TITAN","TORNTPHARM","TORNTPOWER","TARIL","TRENT","TRIDENT","TRITURBINE","TIINDIA","UCOBANK","UNOMINDA","UPL","UTIAMC","ULTRACEMCO","UNIONBANK","UBL","UNITDSPR","URBANCO","USHAMART","VTL","VBL","VAML","VISL","VEDL","VOGL","VEDPOWER","VIJAYA","VMM","IDEA","VOLTAS","WAAREEENER","WELCORP","WELSPUNLIV","WHIRLPOOL","WIPRO","WOCKPHARMA","YESBANK","ZFCVINDIA","ZEEL","ZENTEC","ZENSARTECH","ZYDUSLIFE","ZYDUSWELL","ECLERX"]};
+const IDX_SKIP=new Set(['NIFTY','BANKNIFTY','FINNIFTY','MIDCPNIFTY','NIFTYNXT50','SYMBOL','UNDERLYING']);
+const VORDER={BUY:0,HOLD:1,WAIT:2,AVOID:3};
+let SC={kind:'n500',rows:[],fails:[],running:false,cancel:false,filter:'ALL',onlyZone:false};
+let MODE='single';
+
+function parseSymbols(text){
+  const clean=s=>s.replace(/^["'\s]+|["'\s]+$/g,'').toUpperCase();
+  const ok=s=>/^[A-Z0-9&\-]{1,20}$/.test(s)&&!IDX_SKIP.has(s);
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  let out=[];
+  let hi=-1,col=-1;
+  for(let i=0;i<Math.min(6,lines.length);i++){
+    const c=lines[i].split(',').map(x=>clean(x));
+    const j=c.indexOf('SYMBOL');
+    if(j>=0){hi=i;col=j;break;}
+  }
+  if(hi>=0){
+    for(const l of lines.slice(hi+1)){const s=clean(l.split(',')[col]||'');if(ok(s))out.push(s);}
+  }else{
+    for(const t of text.split(/[\s,;]+/)){const s=clean(t);if(ok(s))out.push(s);}
+  }
+  return[...new Set(out)];
+}
+function saveList(kind,syms,src){try{localStorage.setItem('sv_list_'+kind,JSON.stringify({syms,src,t:Date.now()}));}catch(e){}}
+function cachedList(kind){try{const c=JSON.parse(localStorage.getItem('sv_list_'+kind)||'null');if(c&&c.syms&&c.syms.length)return c;}catch(e){}return EMBED[kind]?{syms:EMBED[kind],src:'built-in',t:null}:null;}
+function dstr(t){return new Date(t).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});}
+
+function showListInfo(msg,isErr){
+  const el=$('#listInfo');el.className=isErr?'err':'mut';
+  if(msg){el.textContent=msg;return;}
+  const k=SC.kind,c=cachedList(k);
+  if(k==='mine')el.textContent=c?'My list: '+c.syms.length+' stocks saved. Edit the box below and tap Start scan.':'Type your symbols below and tap Start scan.';
+  else el.textContent=c?LISTS[k].label+': '+c.syms.length+' stocks ('+(c.src==='built-in'?'built-in, from your NSE file':(c.src==='upload'?'uploaded ':'downloaded ')+dstr(c.t))+').':LISTS[k].label+' list not loaded yet. Tap Start scan to download it automatically, or upload the CSV.';
+}
+
+async function fetchList(kind){
+  const t=await fetchVia(LISTS[kind].url,t=>(t.length>300&&/symbol/i.test(t.slice(0,800)))?t:null);
+  const syms=parseSymbols(t);
+  if(syms.length<20)throw new Error('List looked wrong');
+  saveList(kind,syms,'auto');return syms;
+}
+async function ensureSyms(kind,force){
+  if(kind==='mine'){
+    const syms=parseSymbols($('#mineTxt').value);
+    if(!syms.length){showListInfo('Please type at least one symbol in the box.',true);return null;}
+    saveList('mine',syms,'upload');return syms;
+  }
+  if(!force){const c=cachedList(kind);if(c)return c.syms;}
+  showListInfo('Downloading '+LISTS[kind].label+' list…');
+  try{const s=await fetchList(kind);showListInfo();return s;}
+  catch(e){
+    showListInfo('Could not download the '+LISTS[kind].label+' list automatically. Tap "Upload CSV" and choose '+LISTS[kind].hint+', then start the scan.',true);
+    return null;
+  }
+}
+
+async function pool(items,n,fn){let i=0;const w=Array.from({length:Math.min(n,items.length)},async()=>{while(i<items.length){const it=items[i++];await fn(it);}});await Promise.all(w);}
+
+async function scanTech(sym){
+  const res=await yj('https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+'.NS?range=10y&interval=1mo');
+  const mb=mergeMonths(parseBars(res));
+  if(mb.length<3)throw new Error('short history');
+  const price=res.meta.regularMarketPrice||mb[mb.length-1].c;
+  const last=mb[mb.length-1];last.h=Math.max(last.h,price);last.l=Math.min(last.l,price);last.c=price;
+  const yrs=aggYears(mb),curY=yrs[yrs.length-1],prevY=yrs[yrs.length-2];
+  const mN=lv(last.h,last.l,last.c),yN=lv(curY.h,curY.l,curY.c),yC=prevY?lv(prevY.h,prevY.l,prevY.c):null;
+  const biasUp=yC?yN.PP>yC.PP:false,above=price>=yN.PP,stretched=price>=mN.R3;
+  return{sym,price,biasUp,above,stretched,trendOk:biasUp&&above,mN,yN,tp:tradePlan(price,mN,yN),cagr:priceCagr3(mb,price),fund:null,fundChecked:false};
+}
+function finalizeRow(r){
+  if(r.fundChecked){
+    const sc=r.fund?scoreFund(r.fund,r.cagr):{tier:'Unknown',pct:null};
+    r.tier=sc.tier;r.pct=sc.pct;
+    r.v=verdict(sc.tier,{biasUp:r.biasUp,above:r.above,stretched:r.stretched});
+    r.note=sc.tier==='Unknown'?'no fundamentals':'';
+  }else{
+    r.tier='–';r.pct=null;
+    r.v={k:'WAIT',text:'Trend not confirmed. Fundamentals not checked.'};
+    r.note='trend not confirmed';
+  }
+}
+function prog(t){$('#scanProg').textContent=t;}
+
+async function runScan(retry){
+  if(SC.running){SC.cancel=true;prog('Stopping…');return;}
+  let syms;
+  if(retry){syms=SC.fails.slice();SC.fails=[];}
+  else{syms=await ensureSyms(SC.kind,false);if(!syms)return;SC.rows=[];SC.fails=[];}
+  SC.running=true;SC.cancel=false;$('#scanGo').textContent='Stop scan';
+  SC.fundAll=$('#fundAll').checked;
+  let done=0;
+  await pool(syms,5,async s=>{
+    if(SC.cancel)return;
+    try{SC.rows.push(await scanTech(s));}catch(e){SC.fails.push(s);}
+    done++;prog('Step 1 of 2: prices '+done+' / '+syms.length+(SC.fails.length?' · '+SC.fails.length+' failed':''));
+  });
+  const cand=SC.rows.filter(r=>!r.fundChecked&&(SC.fundAll||r.trendOk));
+  done=0;
+  await pool(cand,3,async r=>{
+    if(SC.cancel)return;
+    try{r.fund=await loadFund(r.sym);}catch(e){r.fund=null;}
+    r.fundChecked=true;done++;prog('Step 2 of 2: fundamentals '+done+' / '+cand.length);
+  });
+  SC.rows.forEach(finalizeRow);
+  SC.running=false;$('#scanGo').textContent='Start scan';
+  prog((SC.cancel?'Stopped. ':'Done. ')+SC.rows.length+' stocks scanned'+(SC.fails.length?', '+SC.fails.length+' failed.':'.'));
+  SC.cancel=false;
+  try{localStorage.setItem('sv_scan_'+SC.kind,JSON.stringify({t:Date.now(),rows:SC.rows,fails:SC.fails}));}catch(e){}
+  renderScan();
+}
+
+function renderScan(){
+  const R=SC.rows;
+  if(!R.length&&!SC.fails.length){$('#scanOut').innerHTML='';return;}
+  const cnt=k=>R.filter(r=>r.v.k===k).length;
+  const chips=['ALL','BUY','HOLD','WAIT','AVOID'].map(k=>`<button data-f="${k}" class="${SC.filter===k?'on':''}">${k==='ALL'?'All':k} (${k==='ALL'?R.length:cnt(k)})</button>`).join('');
+  const shown=R.filter(r=>(SC.filter==='ALL'||r.v.k===SC.filter)&&(!SC.onlyZone||r.tp.status==='in'))
+    .sort((a,b)=>VORDER[a.v.k]-VORDER[b.v.k]||((b.pct==null?-1:b.pct)-(a.pct==null?-1:a.pct))||a.sym.localeCompare(b.sym));
+  const body=shown.map(r=>{
+    const t1=r.tp.tg.length?fmt(r.tp.tg[0]):'–';
+    return`<tr data-s="${r.sym.replace(/&/g,'&amp;')}" title="${r.v.text.replace(/"/g,'')}"><td><b>${r.sym}</b>${r.note?`<div class="sub">${r.note}</div>`:''}</td><td><span class="pill ${r.v.k}">${r.v.k}</span></td><td>${fmt(r.price)}</td><td class="${r.biasUp?'up':'dn'}">${r.biasUp?'↑':'↓'} ${r.above?'above':'below'}</td><td>${r.tier}${r.pct!=null?' '+Math.round(r.pct)+'%':''}</td><td>${fmt(r.tp.lo)}–${fmt(r.tp.hi)}${r.tp.status==='in'?' <b class="am">●</b>':''}</td><td>${t1}</td></tr>`;
+  }).join('');
+  const fails=SC.fails.length?`<div class="err" style="margin-top:8px;font-size:13px">Could not load ${SC.fails.length} stocks: ${SC.fails.slice(0,15).join(', ')}${SC.fails.length>15?'…':''} <button class="sec" id="retryBtn" style="padding:5px 10px">Retry failed</button></div>`:'';
+  $('#scanOut').innerHTML=`<div class="card"><div class="fchips">${chips}</div>
+   <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="onlyZone" style="flex:none;width:auto;text-transform:none" ${SC.onlyZone?'checked':''}> Only stocks whose price is inside the monthly buy zone (●)</label>
+   <div class="scroll" style="margin-top:8px"><table><tr><th>Stock</th><th style="text-align:center">Verdict</th><th>Price ₹</th><th>2027 pivot</th><th>Fundamentals</th><th>Buy zone ₹</th><th>Target 1</th></tr>${body||'<tr><td colspan="7" class="mut">No stocks match this filter.</td></tr>'}</table></div>
+   ${fails}
+   <div class="row"><button class="sec" id="csvBtn">Download CSV</button></div>
+   <div class="mut" style="margin-top:6px">Tap a stock for its full details. Stocks marked "trend not confirmed" were not checked for fundamentals (tick the box above to check all).</div></div>`;
+}
+
+function downloadCsv(){
+  const h='Symbol,Price,Verdict,Fundamentals,Pivot rising,Price above next-year PP,Buy zone low,Buy zone high,Target 1,Stop-loss\n';
+  const rows=SC.rows.map(r=>[r.sym,r.price.toFixed(2),r.v.k,r.tier,r.biasUp?'yes':'no',r.above?'yes':'no',r.tp.lo.toFixed(2),r.tp.hi.toFixed(2),r.tp.tg.length?r.tp.tg[0].toFixed(2):'',r.tp.sl.toFixed(2)].join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([h+rows],{type:'text/csv'}));a.download='stock-verdict-'+SC.kind+'.csv';a.click();
+}
+
+function restoreScan(){
+  SC.rows=[];SC.fails=[];
+  try{const c=JSON.parse(localStorage.getItem('sv_scan_'+SC.kind)||'null');if(c&&c.rows){SC.rows=c.rows;SC.fails=c.fails||[];prog('Last scan: '+dstr(c.t)+' '+new Date(c.t).toLocaleTimeString()+' · '+SC.rows.length+' stocks. Tap Start scan to refresh.');}else prog('');}catch(e){prog('');}
+  renderScan();
+}
+function setMode(m){
+  if(SC.running&&m!==MODE){return;}
+  MODE=m;
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+  $('#pSingle').style.display=m==='single'?'':'none';
+  $('#pScan').style.display=m==='single'?'none':'';
+  if(m!=='single'){
+    SC.kind=m;
+    $('#mineTxt').style.display=m==='mine'?'':'none';
+    $('#listReload').style.display=m==='mine'?'none':'';
+    if(m==='mine'){const c=cachedList('mine');if(c&&!$('#mineTxt').value)$('#mineTxt').value=c.syms.join(', ');}
+    showListInfo();restoreScan();
+  }
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.m)));
+$('#scanGo').onclick=()=>runScan(false);
+$('#listReload').onclick=async()=>{if(SC.running)return;const s=await ensureSyms(SC.kind,true);if(s)showListInfo();};
+$('#listFile').addEventListener('change',e=>{
+  const f=e.target.files&&e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{const syms=parseSymbols(String(rd.result));
+    if(syms.length<5){showListInfo('Could not find symbols in that file. Please upload the NSE list CSV with a "Symbol" column.',true);return;}
+    if(SC.kind==='mine'){$('#mineTxt').value=syms.join(', ');}
+    saveList(SC.kind,syms,'upload');showListInfo();};
+  rd.readAsText(f);e.target.value='';
+});
+$('#scanOut').addEventListener('click',e=>{
+  const t=e.target;
+  const fb=t.closest&&t.closest('button[data-f]');
+  if(fb){SC.filter=fb.dataset.f;renderScan();return;}
+  if(t.id==='csvBtn'){downloadCsv();return;}
+  if(t.id==='retryBtn'){runScan(true);return;}
+  const tr=t.closest&&t.closest('tr[data-s]');
+  if(tr){setMode('single');$('#sym').value=tr.dataset.s;run();window.scrollTo(0,0);}
+});
+$('#scanOut').addEventListener('change',e=>{if(e.target.id==='onlyZone'){SC.onlyZone=e.target.checked;renderScan();}});
+
+$('#go').onclick=run;
+$('#sym').addEventListener('keydown',e=>{if(e.key==='Enter')run();});
+try{const q=new URLSearchParams(location.search).get('s')||localStorage.getItem('sv_last');if(q){$('#sym').value=q;}}catch(e){}
+if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
+</script>
+</body>
+</html>
